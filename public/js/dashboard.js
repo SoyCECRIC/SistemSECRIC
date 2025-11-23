@@ -152,3 +152,49 @@ function getRoleText(role) {
   };
   return texts[role] || role;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+            loadTableData('/reservations', 'reservations-table');
+            // Iniciar verificación de reservas para finalización automática
+            startAutoEndCheck();
+        });
+
+        async function loadUserData() {
+            try {
+                const res = await fetch('/user', { credentials: 'include' });
+                if (!res.ok) throw new Error('Error al obtener usuario');
+                const data = await res.json();
+            } catch (err) {
+                console.error('Error cargando datos del usuario:', err);
+            }
+        }
+
+        async function startAutoEndCheck() {
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/reservations', { credentials: 'include' });
+                    if (!res.ok) throw new Error('Error al obtener reservas');
+                    const reservations = await res.json();
+                    const now = new Date();
+                    for (const resv of reservations) {
+                        if (resv.status === 'pending' || resv.status === 'confirmed') {
+                            const [hours, minutes] = resv.exitTime.split(':').map(Number);
+                            const endDateTime = new Date(resv.date);
+                            endDateTime.setHours(hours, minutes, 0, 0);
+                            // Agregar 5 minutos (5 * 60 * 1000 milisegundos)
+                            const endPlusFive = new Date(endDateTime.getTime() + 5 * 60 * 1000);
+                            if (now >= endPlusFive) {
+                                await fetch(`/reservations/end/${resv._id}`, {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                            }
+                        }
+                    }
+                    loadTableData('/reservations', 'reservations-table');
+                } catch (err) {
+                    console.error('Error en verificación automática:', err);
+                }
+            }, 60000); // Verificar cada minuto
+        }
