@@ -1,0 +1,409 @@
+/* Estilos generales */
+body {
+  padding-top: 10px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f4f7fa;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+  transform: translateX(-100%);
+  opacity: 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid #444;
+}
+
+.sidebar.active {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Foto de perfil */
+.user-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #ffffff33;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.user-img:hover {
+  transform: scale(1.05);
+}
+
+.profile-image-container {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  background: #fff;
+  border-radius: 50%;
+  padding: 5px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+/* Contenido principal */
+.main-content {
+  transition: opacity 0.3s ease;
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.main-content.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Navegación */
+.nav-link {
+  border-radius: 5px;
+  transition: all 0.2s;
+  padding: 0.5rem 1rem;
+  color: #ccc;
+}
+
+.nav-link:hover {
+  background-color: #ffffff1a;
+  color: #fff;
+}
+
+.nav-link.active {
+  background-color: #ffffff2a;
+  color: #fff;
+}
+
+/* Logos */
+.logo-main {
+  max-height: 80px;
+  width: auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-main:hover {
+  transform: scale(1.1);
+}
+
+/* Botón toggle */
+.toggle-btn {
+  z-index: 1100;
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #007bff;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.toggle-btn:hover {
+  transform: scale(1.1);
+}
+/* Botón toggle dentro del header */
+.dashboard-header .toggle-btn {
+  position: static; /* ya no es fijo */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px; /* separación del título */
+  background: #007bff;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+}
+
+.dashboard-header .toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+
+/* Dashboard header */
+.dashboard-header {
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Carrusel más corto y limpio */
+.carousel,
+.carousel-item,
+.carousel-item img {
+  height: 87vh; /* más corto */
+}
+
+.carousel {
+  border-radius: 6px;
+  margin: 5px auto;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(85%);
+  transition: transform 6s ease-in-out, filter 0.5s ease;
+}
+
+.carousel-image:hover {
+  filter: brightness(95%);
+  transform: scale(1.05);
+}
+
+/* Controles más elegantes */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-color: rgba(0, 123, 255, 0.8);
+  border-radius: 70%;
+  padding: 15px;
+  width: 40px;
+  height: 40px;
+}
+
+/* Indicadores */
+.carousel-indicators [data-bs-target] {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #bbb;
+  transition: all 0.3s ease;
+}
+
+.carousel-indicators .active {
+  background-color: #007bff;
+  transform: scale(1.2);
+}
+
+/* Footer separado */
+footer {
+  margin-top: 40px;
+  background: #222;
+  padding: 20px 0;
+  text-align: center;
+}
+
+footer p {
+  margin: 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.footer-logo {
+  max-height: 35px;
+  margin-left: 15px;
+}
+
+
+/* Overlay para oscurecer contenido */
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#overlay.active {
+  opacity: 1;
+}
+
+/* Footer */
+footer {
+  width: 100%;
+  margin-top: auto;
+  border-top: 1px solid #444;
+}
+
+.footer-logo {
+  max-height: 60px;
+  width: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar:not(.d-none) {
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+}
+
+/* edit profile*/
+
+        .photo-container {
+            position: relative;
+            display: inline-block;
+        }
+        .photo-options {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+        }
+        .photo-container:hover .photo-options {
+            opacity: 1;
+        }
+        .photo-container img {
+            transition: filter 0.3s ease;
+        }
+        .photo-container:hover img {
+            filter: brightness(70%);
+        }
+        .password-container {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+
+/* adminReservas */
+/* Tabla */
+.table {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.table thead {
+    background-color: #007bff; /* Azul bootstrap */
+    color: white;
+    font-weight: bold;
+}
+
+.table tbody tr:hover {
+    background-color: #e9f5ff; /* Azul clarito al pasar el mouse */
+    transition: 0.3s;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Botones dentro de la tabla */
+.btn-action {
+    margin: 0 2px;
+}
+
+/* Badge para estados */
+.badge-secondary {
+    background-color: #6c757d !important;
+}
+
+/* Scroll horizontal para tablas pequeñas */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Título principal */
+main h3 {
+    margin-left: 50px; /* deja espacio para el botón del menú */
+    font-weight: 600;
+}
+
+/* Estilos adicionales para el menú de iconos */
+    .active-menu-item .card {
+      border: 2px solid #0d6efd;
+      background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    @media (max-width: 768px) {
+      #menu-icons-section h2 {
+        font-size: 1.5rem;
+      }
+      
+      .card h6 {
+        font-size: 0.9rem;
+      }
+    }
+
+/* foto de perfil*/
+    .profile-image-container {
+      width: 180px;
+      height: 180px;
+      margin: 0 auto;
+      border-radius: 50%;
+      border: 5px solid #0d6efd;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      background-color: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .profile-image-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .profile-image-container .default-avatar {
+      font-size: 80px;
+      color: #6c757d;
+    }
+    
+    .welcome-section {
+      text-align: center;
+      margin: 30px 0 20px 0;
+    }
+    
+    .welcome-section h2 {
+      font-size: 2rem;
+      color: #2c3e50;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+    
+    #menu-icons-section {
+      margin-top: 40px;
+    }

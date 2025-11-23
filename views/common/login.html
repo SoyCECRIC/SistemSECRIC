@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGIN</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/img/Logo 1.png">
+
+</head>
+<body>
+    <div class="wrapper">
+        <div class="logos">
+            <img src="/img/logo_1.png" alt="Logo 1" class="logo">
+            <img src="/img/logo_2.png" alt="Logo 2" class="logo">
+        </div>
+        <form id="loginForm" action="/login" method="POST">
+            <h3>LOGIN</h3>
+            <div class="input-box">
+                <i class="fas fa-user"></i>
+                <input type="email" name="email" placeholder="Correo Electrónico" required>
+            </div>
+            <div class="input-box">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" placeholder="Contraseña" required>
+            </div>
+            <div class="remember-forgot">
+                <a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a>
+            </div>
+            <button type="submit" class="btn"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</button>
+        </form>
+    </div>
+
+    <!-- Modal de error -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <h4 id="modalMessage"></h4>
+            <button class="close-btn" onclick="closeModal('errorModal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de recuperar contraseña -->
+    <div id="forgotModal" class="modal">
+        <div class="modal-content">
+            <h4>Recuperar contraseña</h4>
+            <input type="email" id="recoverEmail" placeholder="Ingresa tu correo" required>
+            <div id="recoverMessage" style="color: red; margin-top: 10px; display: none;"></div>
+            <div style="margin-top:15px;">
+                <button class="btn" id="recoverBtn">Recuperar</button>
+                <button class="close-btn" onclick="closeModal('forgotModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de carga -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loader"></div>
+        <p>Entrando al sistema...</p>
+    </div>
+
+    <script>
+        // Protección mejorada contra botón atrás: Agregar entrada extra al historial y redirigir en popstate
+        window.addEventListener('load', function() {
+            // Agrega una entrada dummy al historial para "atrapar" el back button
+            history.pushState(null, null, location.href);
+        });
+
+        window.addEventListener('popstate', function(event) {
+            // Si intenta ir atrás, empuja de nuevo y redirige a login para bloquear
+            history.pushState(null, null, location.href);
+            window.location.replace('/'); // O '/' si tu login está en la raíz
+        });
+
+        // Mostrar mensaje de error con duración
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            const modal = document.getElementById('errorModal');
+            const modalMessage = document.getElementById('modalMessage');
+            
+            modalMessage.textContent = urlParams.get('error') === 'invalid' 
+                ? '⚠️ Credenciales inválidas. Intenta de nuevo.' 
+                : '⚠️ Error del servidor. Intenta de nuevo más tarde.';
+            
+            modal.style.display = 'block';
+
+            // Se cierra automáticamente después de 4 segundos
+            setTimeout(() => { closeModal('errorModal'); }, 4000);
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            if (id === 'forgotModal') {
+                document.getElementById('recoverEmail').value = '';
+                document.getElementById('recoverMessage').style.display = 'none';
+            }
+        }
+
+        // Recuperar contraseña
+        document.getElementById("forgotPasswordLink").addEventListener("click", function(e){
+            e.preventDefault();
+            document.getElementById("forgotModal").style.display = "block";
+        });
+
+        document.getElementById("recoverBtn").addEventListener("click", async function(){
+            const email = document.getElementById("recoverEmail").value;
+            const recoverMessage = document.getElementById("recoverMessage");
+
+            if (!email) {
+                recoverMessage.textContent = "Por favor ingresa un correo válido.";
+                recoverMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                document.getElementById("loadingScreen").style.display = "flex";
+                const response = await fetch('/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const result = await response.json();
+                document.getElementById("loadingScreen").style.display = "none";
+
+                if (response.ok) {
+                    recoverMessage.textContent = "Se ha enviado un correo con tu contraseña.";
+                    recoverMessage.style.color = 'green';
+                    recoverMessage.style.display = 'block';
+                    setTimeout(() => { closeModal('forgotModal'); }, 3000);
+                } else {
+                    recoverMessage.textContent = result.error || "Error al enviar el correo de recuperación.";
+                    recoverMessage.style.color = 'red';
+                    recoverMessage.style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById("loadingScreen").style.display = "none";
+                recoverMessage.textContent = "Error del servidor. Intenta de nuevo más tarde.";
+                recoverMessage.style.color = 'red';
+                recoverMessage.style.display = 'block';
+            }
+        });
+
+        // Pantalla de carga en login
+        document.getElementById("loginForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            document.getElementById("loadingScreen").style.display = "flex";
+            setTimeout(() => {
+                this.submit();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

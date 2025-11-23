@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrar Reservas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/png" href="/img/Logo 1.png">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    
+    <!-- Sidebar (Modal) -->
+    <aside id="sidebar" class="position-fixed vh-100 bg-dark text-white d-flex flex-column p-3 sidebar d-none">
+        <div class="text-center mb-4">
+            <a href="/dashboard">
+                <img id="sidebar-user-img" src="/img/default-profile.png" alt="Foto de perfil" class="rounded-circle mb-2 user-img" style="width: 80px; height: 80px;">
+            </a>
+            <h6 id="user-name-sidebar">Usuario</h6>
+        </div>
+        <nav class="nav flex-column flex-grow-1">
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/dashboard">
+                <i class="fas fa-home me-2"></i> Inicio
+            </a>
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/reserve">
+                <i class="fas fa-calendar-plus me-2"></i> Reservar
+            </a>
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/reservations/manage">
+                <i class="fas fa-list me-2"></i> Administrar Reservas
+            </a>
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/my-reservations">
+                <i class="fas fa-list me-2"></i> Mis Reservas
+            </a>
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/profile/edit">
+                <i class="fas fa-user-edit me-2"></i> Editar Perfil
+            </a>
+            <a class="nav-link text-white d-flex align-items-center mb-2" href="/users/manage">
+                <i class="fas fa-users me-2"></i> Administrar Cuentas
+            </a>
+            <hr class="text-secondary">
+            <a class="nav-link text-white d-flex align-items-center mt-auto" href="/logout">
+                <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Overlay -->
+    <div id="overlay" class="position-fixed top-0 start-0 w-100 h-100 overlay d-none"></div>
+
+    <!-- Botón toggle -->
+    <button id="sidebarToggle" class="btn btn-primary rounded-circle toggle-btn" aria-label="Abrir o cerrar menú">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main class="container-fluid p-4 flex-grow-1" id="main-content">
+        <h3 class="mb-4">Administrar Reservas</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Docente</th>
+                        <th>Fecha</th>
+                        <th>Hora Entrada</th>
+                        <th>Hora Salida</th>
+                        <th>Motivo</th>
+                        <th>Grupo/Grado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reservations-table"></tbody>
+            </table>
+        </div>
+    </main>
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-3 mt-auto">
+        <div class="container d-flex justify-content-between align-items-center">
+            <p class="mb-0">&copy; 2025 Sistema de Reservas. Todos los derechos reservados.</p>
+            <img src="/img/Gohe.png" alt="Logo del autor" class="img-fluid footer-logo">
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userNameElement = document.getElementById('user-name-sidebar');
+            const userImgElement = document.getElementById('sidebar-user-img');
+            if (userNameElement && userImgElement) {
+                loadUserData();
+            } else {
+                console.error('Elementos del sidebar no encontrados');
+            }
+            loadTableData('/reservations', 'reservations-table');
+            // Iniciar verificación de reservas para finalización automática
+            startAutoEndCheck();
+        });
+
+        async function loadUserData() {
+            try {
+                const res = await fetch('/user', { credentials: 'include' });
+                if (!res.ok) throw new Error('Error al obtener usuario');
+                const data = await res.json();
+                const sidebarName = document.getElementById('user-name-sidebar');
+                const sidebarImg = document.getElementById('sidebar-user-img');
+                if (sidebarName) sidebarName.textContent = data.name || 'Usuario';
+                if (sidebarImg && data.profileImage) sidebarImg.src = data.profileImage;
+            } catch (err) {
+                console.error('Error cargando datos del usuario:', err);
+            }
+        }
+
+        async function startAutoEndCheck() {
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/reservations', { credentials: 'include' });
+                    if (!res.ok) throw new Error('Error al obtener reservas');
+                    const reservations = await res.json();
+                    const now = new Date();
+                    for (const resv of reservations) {
+                        if (resv.status === 'pending' || resv.status === 'confirmed') {
+                            const [hours, minutes] = resv.exitTime.split(':').map(Number);
+                            const endDateTime = new Date(resv.date);
+                            endDateTime.setHours(hours, minutes, 0, 0);
+                            // Agregar 5 minutos (5 * 60 * 1000 milisegundos)
+                            const endPlusFive = new Date(endDateTime.getTime() + 5 * 60 * 1000);
+                            if (now >= endPlusFive) {
+                                await fetch(`/reservations/end/${resv._id}`, {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                            }
+                        }
+                    }
+                    loadTableData('/reservations', 'reservations-table');
+                } catch (err) {
+                    console.error('Error en verificación automática:', err);
+                }
+            }, 60000); // Verificar cada minuto
+        }
+    </script>
+    <script>
+        
+    </script>
+</body>
+</html>

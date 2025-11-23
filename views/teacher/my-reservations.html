@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reservas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/png" href="/img/Logo 1.png">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    
+    <!-- Sidebar (Modal) -->
+<!-- Sidebar (dinámico) -->
+<aside id="sidebar" class="position-fixed vh-100 bg-dark text-white d-flex flex-column p-3 sidebar d-none">
+    <div class="text-center mb-4">
+        <a href="/dashboard">
+            <img id="sidebar-user-img" src="/img/default-profile.png" alt="Foto de perfil"
+                class="rounded-circle mb-2 user-img" style="width: 80px; height: 80px;">
+        </a>
+        <h6 id="user-name-sidebar">Usuario</h6>
+    </div>
+    <nav class="nav flex-column flex-grow-1"></nav>
+    <hr class="text-secondary">
+    <a class="nav-link text-white d-flex align-items-center mt-auto" href="/logout">
+        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+    </a>
+</aside>
+
+
+
+    <!-- Overlay -->
+    <div id="overlay" class="position-fixed top-0 start-0 w-100 h-100 overlay d-none"></div>
+
+    <!-- Botón toggle -->
+    <button id="sidebarToggle" class="btn btn-primary rounded-circle toggle-btn" aria-label="Abrir o cerrar menú">
+        <i class="fas fa-bars"></i>
+    </button>
+    <main class="container-fluid p-4 flex-grow-1" id="main-content">
+        <h3 class="mb-4">Mis Reservas</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora Entrada</th>
+                        <th>Hora Salida</th>
+                        <th>Motivo</th>
+                        <th>Grupo/Grado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reservations-table"></tbody>
+            </table>
+        </div>
+    </main>
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-3 mt-auto">
+        <div class="container d-flex justify-content-between align-items-center">
+        <p class="mb-0">&copy; 2025 Sistema de Reservas. Todos los derechos reservados.</p>
+        <img src="/img/Gohe.png" alt="Logo del autor" class="img-fluid footer-logo">
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/sidebar"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userNameElement = document.getElementById('user-name-sidebar');
+            const userImgElement = document.getElementById('sidebar-user-img');
+            if (userNameElement && userImgElement) {
+                loadUserData();
+            } else {
+                console.error('Elementos del sidebar no encontrados');
+            }
+            loadTableData('/users', 'users-table');
+
+            // Manejar envío del formulario del modal de edición
+            document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const body = {};
+                formData.forEach((value, key) => {
+                    if (value) body[key] = value; // Solo incluir campos no vacíos
+                });
+
+                const message = document.getElementById('edit-message');
+                try {
+                    const res = await fetch(`/users/edit/${body.userId}`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({ error: 'Error del servidor' }));
+                        throw new Error(errorData.error || 'Error al guardar cambios');
+                    }
+
+                    message.classList.remove('alert-danger', 'd-none');
+                    message.classList.add('alert-success');
+                    message.textContent = 'Usuario actualizado exitosamente';
+                    setTimeout(() => {
+                        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                        loadTableData('/users', 'users-table');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Error guardando usuario:', err);
+                    message.classList.remove('alert-success', 'd-none');
+                    message.classList.add('alert-danger');
+                    message.textContent = err.message || 'Error del servidor. Intenta de nuevo más tarde.';
+                }
+            });})
+            async function loadUserData() {
+            try {
+                const res = await fetch('/user', { credentials: 'include' });
+                if (!res.ok) throw new Error('Error al obtener usuario');
+                const data = await res.json();
+                const sidebarName = document.getElementById('user-name-sidebar');
+                const sidebarImg = document.getElementById('sidebar-user-img');
+                if (sidebarName) sidebarName.textContent = data.name || 'Usuario';
+                if (sidebarImg && data.profileImage) sidebarImg.src = data.profileImage;
+            } catch (err) {
+                console.error('Error cargando datos del usuario:', err);
+            }
+        }
+    </script>
+    <script>
+        async function loadTableData(url, tableBodyId, isMyReservations = false) {
+            console.log('Cargando datos desde:', url); 
+            const tableBody = document.getElementById(tableBodyId);
+            if (!tableBody) {
+                console.error('No se encontró el tbody:', tableBodyId);
+                return;
+            }
+
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando reservas...</td></tr>';
+
+            try {
+                const res = await fetch(url, { credentials: 'include' });
+                console.log('Status del fetch:', res.status);
+                const reservations = await res.json();
+                console.log('Datos obtenidos:', reservations);
+
+                if (reservations.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay reservas disponibles.</td></tr>';
+                return;
+                }
+
+                tableBody.innerHTML = '';
+                reservations.forEach(resv => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td>${resv.date ? new Date(resv.date).toLocaleDateString() : '-'}</td>
+                    <td>${resv.entryTime || '-'}</td>
+                    <td>${resv.exitTime || '-'}</td>
+                    <td>${resv.motive || '-'}</td>
+                    <td>${resv.groupGrade || '-'}</td>
+                    <td>
+                    ${resv.status === 'pending' ? `
+                        <button class="btn btn-success btn-sm btn-action" onclick="confirmReservation('${resv._id}')">
+                        <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-action" onclick="cancelReservation('${resv._id}')">
+                        <i class="fas fa-times"></i>
+                        </button>` 
+                        : `<span class="badge bg-secondary">${resv.status}</span>`}
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Error cargando reservas:', err);
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error cargando reservas</td></tr>`;
+            }
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+
+    // Toggle sidebar
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+    }
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        sidebar.classList.remove('d-none');
+        overlay.classList.toggle('active');
+        overlay.classList.toggle('d-none');
+
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+    }
+
+    // Cargar usuario y configurar menú
+    loadUserDataAndConfigureMenu();
+});
+
+async function loadUserDataAndConfigureMenu() {
+    try {
+        const res = await fetch('/user', { credentials: 'include' });
+        if (!res.ok) throw new Error('Error al obtener usuario');
+        const data = await res.json();
+
+        // Datos de usuario
+        const sidebarName = document.getElementById('user-name-sidebar');
+        if (sidebarName) sidebarName.textContent = data.name || 'Usuario';
+
+        const sidebarImg = document.getElementById('sidebar-user-img');
+        if (sidebarImg) sidebarImg.src = data.profileImage || '/img/default-profile.png';
+
+        // Configurar menú
+        configureMenuByRole(data.role || 'teacher');
+
+        // Clase en body según rol
+        document.body.classList.add(`role-${data.role}`);
+    } catch (err) {
+        console.error('Error cargando datos del usuario:', err);
+        configureMenuByRole('teacher');
+    }
+}
+
+function configureMenuByRole(role) {
+    const menuItems = {
+        teacher: [
+            { href: '/dashboard', icon: 'fa-home', text: 'Inicio' },
+            { href: '/my-reservations', icon: 'fa-list', text: 'Mis Reservas' },
+            { href: '/profile/edit', icon: 'fa-user-edit', text: 'Editar Perfil' }
+        ],
+        admin: [
+            { href: '/dashboard', icon: 'fa-home', text: 'Inicio' },
+            { href: '/reserve', icon: 'fa-calendar-plus', text: 'Reservar' },
+            { href: '/reservations/manage', icon: 'fa-list', text: 'Administrar Reservas' },
+            { href: '/my-reservations', icon: 'fa-list', text: 'Mis Reservas' },
+            { href: '/profile/edit', icon: 'fa-user-edit', text: 'Editar Perfil' },
+            { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' },
+            { href: '/news/manage', icon: 'fa-newspaper', text: 'Gestionar Noticias' }
+        ],
+        superadmin: [
+            { href: '/dashboard', icon: 'fa-home', text: 'Inicio' },
+            { href: '/reserve', icon: 'fa-calendar-plus', text: 'Reservar' },
+            { href: '/reservations/manage', icon: 'fa-list', text: 'Administrar Reservas' },
+            { href: '/my-reservations', icon: 'fa-list', text: 'Mis Reservas' },
+            { href: '/profile/edit', icon: 'fa-user-edit', text: 'Editar Perfil' },
+            { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' },
+            { href: '/news/manage', icon: 'fa-newspaper', text: 'Gestionar Noticias' }
+        ]
+    };
+
+    const sidebarNav = document.querySelector('#sidebar nav');
+    if (!sidebarNav) return;
+
+    // Limpiar menú actual
+    sidebarNav.innerHTML = '';
+
+    // Agregar items según rol
+    const items = menuItems[role] || menuItems.teacher;
+    items.forEach(item => {
+        const link = document.createElement('a');
+        link.className = 'nav-link text-white d-flex align-items-center mb-2';
+        link.href = item.href;
+        link.innerHTML = `<i class="fas ${item.icon} me-2"></i> ${item.text}`;
+
+        // Resaltar activo
+        if (window.location.pathname === item.href) {
+            link.classList.add('active');
+            link.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+        }
+
+        sidebarNav.appendChild(link);
+    });
+}
+
+        
+    </script>
+</body>
+</html>
