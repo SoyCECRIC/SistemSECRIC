@@ -101,12 +101,7 @@ confirmAction = async () => {
             messageDiv.classList.remove('d-none', 'alert-danger');
             messageDiv.classList.add('alert-success');
             messageDiv.textContent = data.message || 'Perfil actualizado';
-            setTimeout(() => {
-                // Recarga forzada + evita caché
-                window.location.reload(true); // viejo truco (aún funciona)
-                // O mejor aún:
-                window.location.href = '/profile/edit?' + new Date().getTime();
-            }, 1200);
+            setTimeout(() => location.reload(), 1500);
         } else {
             let errorMsg = 'Error al guardar';
             try {

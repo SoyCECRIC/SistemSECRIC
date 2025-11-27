@@ -145,30 +145,48 @@ router.get('/dashboard', authController.verifyToken, (req, res) => {
 
 // Editar perfil
 router.get('/profile/edit', authController.verifyToken, (req, res) => res.sendFile('views/common/edit-profile.html', { root: __dirname + '/../' }));
-// === RUTA NUEVA SIN MULTER (funciona 100% en Hostinger) ===
 router.post('/profile/update', authController.verifyToken, async (req, res) => {
     try {
-        const { name, email, profileImage } = req.body;
+        console.log('=== ACTUALIZACIÓN DE PERFIL ==='); // Para ver en los logs
+        console.log('Body recibido:', Object.keys(req.body)); // name, email, profileImage?
+        console.log('profileImage recibido:', typeof req.body.profileImage, 
+                    req.body.profileImage?.substring(0, 50) + '...');
 
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-        if (name) user.name = name;
-        if (email) user.email = email;
-        if (profileImage && profileImage.startsWith('data:image')) {
-            user.profileImage = profileImage; // base64 directo
+        // Actualizar nombre y email (siempre)
+        if (req.body.name) user.name = req.body.name.trim();
+        if (req.body.email) user.email = req.body.email.trim();
+
+        // GUARDAR FOTO SOLO SI VIENE Y ES UN STRING VÁLIDO
+        if (req.body.profileImage && 
+            typeof req.body.profileImage === 'string' && 
+            req.body.profileImage.length > 100 &&  // base64 mínimo tiene miles de caracteres
+            req.body.profileImage.includes('base64,')) {  // más seguro que startsWith
+
+            user.profileImage = req.body.profileImage;
+            console.log('Foto de perfil GUARDADA correctamente');
+        } else if (req.body.hasOwnProperty('profileImage')) {
+            // Si viene pero es null/undefined/vacío → el usuario quiere BORRAR la foto
+            user.profileImage = null;
+            console.log('Foto de perfil eliminada');
+        } else {
+            console.log('No se envió nueva foto → se mantiene la actual');
         }
 
         await user.save();
 
+        console.log('Perfil guardado en MongoDB. Foto actual:', !!user.profileImage);
+
         res.json({
             message: 'Perfil actualizado exitosamente',
-            profileImage: user.profileImage
+            profileImage: user.profileImage || null
         });
 
     } catch (err) {
-        console.error('Error actualizando perfil:', err);
-        res.status(500).json({ error: 'Error del servidor' });
+        console.error('ERROR CRÍTICO actualizando perfil:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 router.post('/profile/change-password', authController.verifyToken, authController.changePassword);
