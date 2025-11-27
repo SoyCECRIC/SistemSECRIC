@@ -3,9 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const reservationController = require('../controllers/reservationController');
 const userController = require('../controllers/userController');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
+const newsController = require('../controllers/newsController');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
@@ -318,42 +316,15 @@ router.post('/users/create', authController.verifyToken, authController.verifyRo
     }
 });
 
-const newsController = require('../controllers/newsController');
 
-// Configuración de Multer para noticias (en memoria para base64)
-const uploadNews = multer({
-  storage: multer.memoryStorage(), // ← CAMBIO: Memoria, no disco
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|mp4|webm|ogg/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = /^(image|video)\//.test(file.mimetype);
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten imágenes (JPG, PNG, GIF) o videos (MP4, WEBM, OGG)'));
-    }
-  },
-  limits: { fileSize: 50 * 1024 * 1024 } // 50 MB
-}).single('newsMedia');
-
-// Middleware para manejar errores de Multer en noticias (sin cambios)
-const handleNewsMulterError = (err, req, res, next) => {
-  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'El archivo es demasiado grande. El tamaño máximo permitido es 50 MB.' });
-  }
-  if (err) {
-    return res.status(400).json({ error: err.message || 'Error al procesar el archivo' });
-  }
-  next();
-};
 
 // Rutas de Noticias
 router.get('/news/manage', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), (req, res) => res.sendFile('views/admin/manage-news.html', { root: __dirname + '/../' }));
-router.post('/news/create', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), uploadNews, handleNewsMulterError, newsController.createNews);
+router.post('/news/create', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.createNews);
 router.get('/news/active', authController.verifyToken, newsController.getActiveNews);
 router.get('/news', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.getAllNews);
 router.get('/news/edit/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.getNewsById);
-router.post('/news/edit/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), uploadNews, handleNewsMulterError, newsController.editNews);
+router.post('/news/edit/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.editNews);
 router.delete('/news/delete/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.deleteNews);
 
 // Ruta para limpiar noticias expiradas (puede ser llamada manualmente o por cron)

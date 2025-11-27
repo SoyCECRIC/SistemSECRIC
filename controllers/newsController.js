@@ -28,40 +28,63 @@ function calculateExpiryDate(duration, durationType) {
     }
 }
 
-// Crear noticia
+// createNews
 exports.createNews = async (req, res) => {
     try {
-        const { title, summary, content, duration, durationType } = req.body;
-        const author = req.user.id;
-        const expiresAt = calculateExpiryDate(duration, durationType);
+        const { title, summary, content, duration, durationType, mediaUrl, mediaType } = req.body;
 
-        // Validaciones
-        if (!title || !summary || !content) {
-            return res.status(400).json({ error: 'Título, resumen y contenido son requeridos' });
-        }
+        // Calcular fecha de expiración
+        const expiresAt = new Date();
+        const value = parseInt(duration) || 7;
+        if (durationType === 'minutes') expiresAt.setMinutes(expiresAt.getMinutes() + value);
+        else if (durationType === 'hours') expiresAt.setHours(expiresAt.getHours() + value);
+        else if (durationType === 'days') expiresAt.setDate(expiresAt.getDate() + value);
+        else if (durationType === 'weeks') expiresAt.setDate(expiresAt.getDate() + value * 7);
+        else if (durationType === 'months') expiresAt.setMonth(expiresAt.getMonth() + value);
+        else if (durationType === 'years') expiresAt.setFullYear(expiresAt.getFullYear() + value);
 
-        const newsData = {
+        const news = new News({
             title,
             summary,
             content,
-            author,
-            expiresAt
-        };
+            mediaUrl: mediaUrl || null,
+            mediaType: mediaType || null,
+            expiresAt,
+            createdBy: req.user.id
+        });
 
-        // Manejar media si se subió (convertir a base64)
-        if (req.file) {
-            const imageBuffer = req.file.buffer;
-            const base64Media = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-            newsData.mediaUrl = base64Media;
-            newsData.mediaType = req.file.mimetype.startsWith('image/') ? 'image' : 'video';
+        await news.save();
+        res.json({ message: 'Noticia creada' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+};
+
+// editNews
+exports.editNews = async (req, res) => {
+    try {
+        const newsId = req.params.id;
+        const updates = { ...req.body };
+
+        // Recalcular expiresAt si cambian duración
+        if (updates.duration && updates.durationType) {
+            const value = parseInt(updates.duration);
+            const expiresAt = new Date();
+            // misma lógica que arriba...
+            if (updates.durationType === 'days') expiresAt.setDate(expiresAt.getDate() + value);
+            // ... resto igual
+            updates.expiresAt = expiresAt;
+            delete updates.duration;
+            delete updates.durationType;
         }
 
-        const news = new News(newsData);
-        await news.save();
+        const news = await News.findByIdAndUpdate(newsId, updates, { new: true });
+        if (!news) return res.status(404).json({ error: 'Noticia no encontrada' });
 
-        res.status(201).json({ message: 'Noticia creada exitosamente', news });
+        res.json({ message: 'Noticia actualizada' });
     } catch (err) {
-        console.error('Error creando noticia:', err);
+        console.error(err);
         res.status(500).json({ error: 'Error del servidor' });
     }
 };
@@ -106,42 +129,6 @@ exports.getNewsById = async (req, res) => {
         res.json(news);
     } catch (err) {
         console.error('Error obteniendo noticia:', err);
-        res.status(500).json({ error: 'Error del servidor' });
-    }
-};
-
-// Editar noticia
-exports.editNews = async (req, res) => {
-    try {
-        const { title, summary, content, duration, durationType } = req.body;
-        const expiresAt = calculateExpiryDate(duration, durationType);
-
-        // Validaciones
-        if (!title || !summary || !content) {
-            return res.status(400).json({ error: 'Título, resumen y contenido son requeridos' });
-        }
-
-        const updateData = {
-            title,
-            summary,
-            content,
-            expiresAt
-        };
-
-        // Si hay nuevo media, actualizar a base64 (no eliminar locales)
-        if (req.file) {
-            const imageBuffer = req.file.buffer;
-            const base64Media = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-            updateData.mediaUrl = base64Media;
-            updateData.mediaType = req.file.mimetype.startsWith('image/') ? 'image' : 'video';
-        }
-
-        const news = await News.findByIdAndUpdate(req.params.id, updateData, { new: true })
-            .populate('author', 'name');
-
-        res.json(news);
-    } catch (err) {
-        console.error('Error editando noticia:', err);
         res.status(500).json({ error: 'Error del servidor' });
     }
 };

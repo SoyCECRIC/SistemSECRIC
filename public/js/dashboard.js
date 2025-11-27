@@ -197,14 +197,16 @@ async function loadActiveNews() {
           mediaHtml = `<video class="card-img-top news-small-img" controls muted><source src="${item.mediaUrl}" type="video/mp4">Video no soportado.</video>`;
         }
       } else {
-        mediaHtml = '<div class="news-no-img"><i class="fas fa-image fa-2x text-muted"></i></div>';
+        mediaHtml = '<div class="news-no-media-placeholder"></div>';
       }
       
       post.innerHTML = `
         <div class="card-body p-4">
           <h5 class="card-title fw-bold text-primary mb-3">${item.title}</h5>
           <div class="mb-3">
-            <span class="badge bg-light text-dark rounded-pill px-3 py-2 summary-badge">${item.summary}</span>
+            <div class="summary-text text-muted small lh-lg">
+              ${item.summary || 'Sin resumen disponible'}
+            </div>
           </div>
           ${mediaHtml}
           <div class="mt-3">

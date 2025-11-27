@@ -462,3 +462,41 @@ main h3 {
     font-size: 1.1rem;
   }
 }
+
+/* RESUMEN: texto bonito, con salto de línea, limitado a 3 líneas */
+.summary-text {
+  font-size: 0.95rem;
+  color: #555 !important;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;        /* Máximo 3 líneas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.5rem 0;
+  margin: 0;
+}
+
+/* Cuando NO hay imagen: espacio limpio o fondo sutil */
+.news-no-media-placeholder {
+  height: 180px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+  font-size: 1.1rem;
+  border: 2px dashed #dee2e6;
+}
+
+.news-no-media-placeholder::after {
+  content: "Sin imagen";
+  font-weight: 500;
+}
+
+/* Si prefieres que NO aparezca nada (más limpio): */
+.news-no-media-placeholder:empty {
+  display: none;
+}
