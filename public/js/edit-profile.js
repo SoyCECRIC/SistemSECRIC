@@ -90,12 +90,33 @@ document.addEventListener('DOMContentLoaded', function() {
                         location.reload();
                     }, 1000);
                 } else {
-                    const errorData = await res.json();
+                    // Intentar leer como JSON, pero si falla → probablemente es HTML (sesión expirada)
+                    let errorMessage = 'Error al guardar cambios';
+                    try {
+                        const contentType = res.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const errorData = await res.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } else {
+                            // Es HTML → probablemente sesión expirada o error del servidor
+                            const text = await res.text();
+                            if (text.includes('login') || text.includes('Iniciar sesión') || res.status === 401 || res.status === 403) {
+                                errorMessage = 'Sesión expirada. Serás redirigido al login...';
+                                setTimeout(() => {
+                                    window.location.href = '/';
+                                }, 2000);
+                            } else {
+                                errorMessage = 'Error del servidor. Intenta más tarde.';
+                            }
+                        }
+                    } catch (err) {
+                        errorMessage = 'Error de conexión o respuesta inválida del servidor';
+                    }
+
                     messageDiv.classList.remove('d-none', 'alert-success');
                     messageDiv.classList.add('alert-danger');
-                    messageDiv.textContent = errorData.error || 'Error al guardar cambios';
+                    messageDiv.textContent = errorMessage;
                     confirmModal.hide();
-                    document.getElementById('changePasswordBtn').focus();
                 }
             } catch (err) {
                 console.error('Error guardando perfil:', err.message);

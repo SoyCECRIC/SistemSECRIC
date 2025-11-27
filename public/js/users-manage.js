@@ -93,8 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const userId = document.getElementById('deleteUserId').value;
         try {
             const res = await fetch(`/users/delete/${userId}`, {
-                method: 'DELETE',
-                credentials: 'include'
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({action: 'delete'}) // Puedes enviar un body vacío o con un campo como { action: 'delete' }
             });
 
             if (res.ok) {
