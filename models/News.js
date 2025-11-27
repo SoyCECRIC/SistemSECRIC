@@ -1,27 +1,33 @@
-// models/News.js - Modelo para las noticias
-
 const mongoose = require('mongoose');
 
 const newsSchema = new mongoose.Schema({
     title: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 200
     },
     summary: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 500
     },
     content: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    image: {
+    mediaUrl: {
         type: String,
         default: null
     },
-    createdBy: {
+    mediaType: {
+        type: String,
+        enum: ['image', 'video', null],
+        default: null
+    },
+    author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -30,20 +36,12 @@ const newsSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    updatedAt: {
+    expiresAt: {
         type: Date,
-        default: Date.now
-    },
-    isActive: {
-        type: Boolean,
-        default: true
+        required: true
     }
-});
-
-// Actualizar fecha de modificación antes de guardar
-newsSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
+}, {
+    timestamps: true
 });
 
 module.exports = mongoose.model('News', newsSchema);

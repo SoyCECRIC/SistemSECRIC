@@ -14,7 +14,7 @@ async function performLogout() {
   }
 }
 
-// Event listener para el botón de logout
+// Event listener para el botón de logout (como estaba originalmente)
 document.addEventListener('DOMContentLoaded', function() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
@@ -46,6 +46,10 @@ document.addEventListener('DOMContentLoaded', async function() {
       configureMenuByRole(data.role || 'teacher');
       menuConfigured = true;
     }
+
+    // Configurar toggle del menú (solo en la foto de perfil)
+    setupMenuToggle();
+    loadActiveNews();
     
   } catch (err) {
     console.error('Error al cargar usuario:', err);
@@ -56,8 +60,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     configureMenuByRole('teacher');
     menuConfigured = true;
+    setupMenuToggle();
   }
 });
+
+// Función para configurar el toggle del menú (solo en perfil)
+function setupMenuToggle() {
+  const menuSection = document.getElementById('menu-icons-section');
+  const profileContainer = document.getElementById('profile-image-container');
+
+  if (profileContainer) {
+    profileContainer.addEventListener('click', function() {
+      menuSection.classList.toggle('hidden');
+    });
+  }
+
+  // Configurar listener para el ítem de logout en el menú (si existe)
+  document.querySelectorAll('.logout-menu-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      performLogout();
+    });
+  });
+}
 
 // Función para actualizar la imagen de perfil
 function updateProfileImage(profileImage) {
@@ -86,17 +111,17 @@ function configureMenuByRole(role) {
       { href: '/dashboard', icon: 'fa-home', text: 'Inicio' },
       { href: '/reserve', icon: 'fa-calendar-plus', text: 'Reservar' },
       { href: '/reservations/manage', icon: 'fa-list', text: 'Administrar Reservas' },
-      { href: '/my-reservations', icon: 'fa-list', text: 'Mis Reservas' },
       { href: '/profile/edit', icon: 'fa-user-edit', text: 'Editar Perfil' },
-      { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' }
+      { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' },
+      { href: '/news/manage', icon: 'fa-newspaper', text: 'Noticias' }
     ],
     superadmin: [
       { href: '/dashboard', icon: 'fa-home', text: 'Inicio' },
       { href: '/reserve', icon: 'fa-calendar-plus', text: 'Reservar' },
       { href: '/reservations/manage', icon: 'fa-list', text: 'Administrar Reservas' },
-      { href: '/my-reservations', icon: 'fa-list', text: 'Mis Reservas' },
       { href: '/profile/edit', icon: 'fa-user-edit', text: 'Editar Perfil' },
-      { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' }
+      { href: '/users/manage', icon: 'fa-users', text: 'Administrar Cuentas' },
+      { href: '/news/manage', icon: 'fa-newspaper', text: 'Noticias' }
     ]
   };
 
@@ -114,12 +139,16 @@ function configureMenuByRole(role) {
     col.className = 'col-md-2 col-sm-4 col-6';
     
     const card = document.createElement('a');
-    card.href = item.href;
-    card.className = 'text-decoration-none';
-    
-    if (window.location.pathname === item.href) {
-      card.classList.add('active-menu-item');
+    if (item.isLogout) {
+      card.href = '#';
+      card.classList.add('logout-menu-item');
+    } else {
+      card.href = item.href;
+      if (window.location.pathname === item.href) {
+        card.classList.add('active-menu-item');
+      }
     }
+    card.className = 'text-decoration-none';
     
     card.innerHTML = `
       <div class="card h-100 shadow-sm text-center p-3">
@@ -133,6 +162,94 @@ function configureMenuByRole(role) {
     col.appendChild(card);
     menuContainer.appendChild(col);
   });
+}
+
+// Función para cargar noticias activas en el feed (minimalista con expand)
+async function loadActiveNews() {
+  try {
+    const res = await fetch('/news/active', { credentials: 'include' });
+    if (!res.ok) throw new Error('Error al cargar noticias');
+    
+    const news = await res.json();
+    const feedContainer = document.getElementById('news-feed');
+    
+    if (!feedContainer) return;
+    
+    feedContainer.innerHTML = '';
+    
+    if (news.length === 0) {
+      feedContainer.innerHTML = '<div class="col-12 text-center py-4"><i class="fas fa-newspaper fa-3x text-muted mb-3"></i><p class="text-muted">No hay noticias disponibles</p></div>';
+      return;
+    }
+    
+    news.forEach(item => {
+      const col = document.createElement('div');
+      col.className = 'col-lg-6 col-md-8 col-12'; // 2 columnas en desktop para más compacto
+      
+      const post = document.createElement('div');
+      post.className = 'news-post card shadow-sm border-0 rounded-4 overflow-hidden h-100';
+      
+      let mediaHtml = '';
+      if (item.mediaUrl) {
+        if (item.mediaType === 'image') {
+          mediaHtml = `<img src="${item.mediaUrl}" class="card-img-top news-small-img" alt="Imagen de noticia">`;
+        } else if (item.mediaType === 'video') {
+          mediaHtml = `<video class="card-img-top news-small-img" controls muted><source src="${item.mediaUrl}" type="video/mp4">Video no soportado.</video>`;
+        }
+      } else {
+        mediaHtml = '<div class="news-no-img"><i class="fas fa-image fa-2x text-muted"></i></div>';
+      }
+      
+      post.innerHTML = `
+        <div class="card-body p-4">
+          <h5 class="card-title fw-bold text-primary mb-3">${item.title}</h5>
+          <div class="mb-3">
+            <span class="badge bg-light text-dark rounded-pill px-3 py-2 summary-badge">${item.summary}</span>
+          </div>
+          ${mediaHtml}
+          <div class="mt-3">
+            <button class="btn btn-outline-primary rounded-pill w-100 leer-mas-btn" data-full-content="${item.content}" data-expanded="false">
+              <i class="fas fa-plus me-2"></i>Leer más
+            </button>
+            <div class="full-content mt-3 collapse" style="display: none;">
+              <p class="card-text text-secondary lh-lg">${item.content}</p>
+              <button class="btn btn-outline-secondary rounded-pill leer-menos-btn mt-2">
+                <i class="fas fa-minus me-2"></i>Leer menos
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Event listener para "Leer más" / "Leer menos"
+      const leerMasBtn = post.querySelector('.leer-mas-btn');
+      const fullContent = post.querySelector('.full-content');
+      const leerMenosBtn = post.querySelector('.leer-menos-btn');
+      
+      leerMasBtn.addEventListener('click', () => {
+        fullContent.style.display = 'block';
+        fullContent.classList.add('show');
+        leerMasBtn.style.display = 'none';
+        leerMenosBtn.style.display = 'block';
+      });
+      
+      leerMenosBtn.addEventListener('click', () => {
+        fullContent.classList.remove('show');
+        setTimeout(() => fullContent.style.display = 'none', 300); // Espera animación
+        leerMasBtn.style.display = 'block';
+        leerMenosBtn.style.display = 'none';
+      });
+      
+      col.appendChild(post);
+      feedContainer.appendChild(col);
+    });
+  } catch (err) {
+    console.error('Error cargando noticias:', err);
+    const feedContainer = document.getElementById('news-feed');
+    if (feedContainer) {
+      feedContainer.innerHTML = '<div class="col-12"><p class="text-center text-danger">Error al cargar noticias</p></div>';
+    }
+  }
 }
 
 function getRoleBadgeColor(role) {
@@ -198,3 +315,4 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 60000); // Verificar cada minuto
         }
+

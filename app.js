@@ -3,7 +3,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const connectDB = require('./config/db');
 const routes = require('./routes/index');
-
+const cron = require('node-cron');
 const app = express();
 
 connectDB();
@@ -21,3 +21,12 @@ app.use('/', routes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+
+cron.schedule('0 * * * *', async () => {
+  await require('./controllers/newsController').cleanExpiredNews();
+}, {
+  scheduled: true,
+  timezone: 'America/Mexico_City' // Ajusta a tu zona horaria
+});
+
+console.log('🕐 Cron job iniciado: Limpieza de noticias expiradas cada hora.');

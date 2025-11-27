@@ -6,65 +6,6 @@ body {
   flex-direction: column;
   background: #f4f7fa;
 }
-
-/* Sidebar */
-.sidebar {
-  width: 250px;
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 1000;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-  transform: translateX(-100%);
-  opacity: 0;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-  border-right: 1px solid #444;
-}
-
-.sidebar.active {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-/* Foto de perfil */
-.user-img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 4px solid #ffffff33;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease;
-}
-
-.user-img:hover {
-  transform: scale(1.05);
-}
-
-.profile-image-container {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1rem;
-  background: #fff;
-  border-radius: 50%;
-  padding: 5px;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.profile-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-.user-name {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #e0e0e0;
-}
-
 /* Contenido principal */
 .main-content {
   transition: opacity 0.3s ease;
@@ -80,24 +21,6 @@ body {
   pointer-events: none;
 }
 
-/* Navegación */
-.nav-link {
-  border-radius: 5px;
-  transition: all 0.2s;
-  padding: 0.5rem 1rem;
-  color: #ccc;
-}
-
-.nav-link:hover {
-  background-color: #ffffff1a;
-  color: #fff;
-}
-
-.nav-link.active {
-  background-color: #ffffff2a;
-  color: #fff;
-}
-
 /* Logos */
 .logo-main {
   max-height: 80px;
@@ -109,103 +32,11 @@ body {
   transform: scale(1.1);
 }
 
-/* Botón toggle */
-.toggle-btn {
-  z-index: 1100;
-  position: fixed;
-  left: 10px;
-  top: 10px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #007bff;
-  border: none;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease;
-}
-
-.toggle-btn:hover {
-  transform: scale(1.1);
-}
-/* Botón toggle dentro del header */
-.dashboard-header .toggle-btn {
-  position: static; /* ya no es fijo */
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 15px; /* separación del título */
-  background: #007bff;
-  border: none;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease;
-}
-
-.dashboard-header .toggle-btn:hover {
-  transform: scale(1.1);
-}
-
-
 /* Dashboard header */
 .dashboard-header {
   background: #fff;
   border-bottom: 1px solid #ddd;
-}
-
-/* Carrusel más corto y limpio */
-.carousel,
-.carousel-item,
-.carousel-item img {
-  height: 87vh; /* más corto */
-}
-
-.carousel {
-  border-radius: 6px;
-  margin: 5px auto;
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-
-.carousel-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(85%);
-  transition: transform 6s ease-in-out, filter 0.5s ease;
-}
-
-.carousel-image:hover {
-  filter: brightness(95%);
-  transform: scale(1.05);
-}
-
-/* Controles más elegantes */
-.carousel-control-prev-icon,
-.carousel-control-next-icon {
-  background-color: rgba(0, 123, 255, 0.8);
-  border-radius: 70%;
-  padding: 15px;
-  width: 40px;
-  height: 40px;
-}
-
-/* Indicadores */
-.carousel-indicators [data-bs-target] {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #bbb;
-  transition: all 0.3s ease;
-}
-
-.carousel-indicators .active {
-  background-color: #007bff;
-  transform: scale(1.2);
+  position: relative;
 }
 
 /* Footer separado */
@@ -379,6 +210,12 @@ main h3 {
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer; /* Indica que es clickable */
+      transition: transform 0.2s ease;
+    }
+
+    .profile-image-container:hover {
+      transform: scale(1.05);
     }
     
     .profile-image-container img {
@@ -406,4 +243,222 @@ main h3 {
     
     #menu-icons-section {
       margin-top: 40px;
+      transition: opacity 0.3s ease, max-height 0.3s ease;
+      opacity: 1;
+      max-height: 2000px; /* Ajusta según el contenido del menú */
+      overflow: hidden;
     }
+
+    #menu-icons-section.hidden {
+      opacity: 0;
+      max-height: 0;
+      margin-top: 0;
+    }
+
+    /* Estilo para el ítem de logout en el menú */
+    .logout-menu-item .card {
+      border-color: #dc3545;
+    }
+
+    .logout-menu-item i {
+      color: #dc3545;
+    }
+
+/* Feed de Noticias (integrado al diseño del dashboard) */
+#news-feed-section {
+  margin-top: 40px; /* Similar al menú */
+}
+
+#news-feed-section h3 {
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.news-post {
+  border-radius: 12px !important; /* Toque sutil como Facebook, pero fiel al sistema */
+}
+
+.news-post .card {
+  
+  border: 1px solid #dee2e6; /* Borde sutil como en tablas del sistema */
+}
+
+.news-post .card-header {
+  background: #f8f9fa; /* Fondo claro como el dashboard */
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+.news-post .card-title {
+  color: #0d6efd; /* Primary color del sistema */
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.news-post .card-text {
+  color: #495057; /* Texto gris estándar de Bootstrap */
+  line-height: 1.5;
+}
+
+.news-post .card-img-top,
+.news-post video {
+  border-radius: 8px;
+  max-height: 300px; /* Altura controlada, como cards del menú */
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Responsive integrado (usa media queries existentes del dashboard) */
+@media (max-width: 768px) {
+  .news-post {
+    margin-bottom: 1rem;
+  }
+  
+  #news-feed-section h3 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Foto de perfil pequeña SOLO en manage-news (clase exclusiva, selector directo) */
+.manage-profile-img {
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  max-width: 50px !important;
+  max-height: 50px !important;
+  border: 2px solid #0d6efd !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background-color: #f8f9fa !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+.manage-profile-img:hover {
+  transform: scale(1.05) !important;
+}
+
+.manage-profile-img img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+}
+
+.manage-profile-img .default-avatar {
+  font-size: 18px !important;
+  color: #6c757d !important;
+  width: 100% !important;
+  height: 100% !important;
+  line-height: 1 !important;
+}
+
+/* Feed de Noticias (minimalista con expand, imagen pequeña) */
+#news-feed-section {
+  margin-top: 40px;
+}
+
+#news-feed-section h3 {
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.news-post {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  border: 1px solid #e9ecef !important;
+}
+
+.news-post:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.news-post .card-title {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: #0d6efd;
+}
+
+.news-post .summary-badge {
+  font-size: 0.9rem;
+  background: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  transition: background 0.2s ease;
+}
+
+.news-post .summary-badge:hover {
+  background: #e9ecef !important;
+}
+
+.news-post .news-small-img {
+  height: 180px !important; /* Altura un poco más grande para evitar corte */
+  width: 100% !important;
+  object-fit: contain !important; /* Muestra imagen completa sin recortar */
+  border-radius: 12px !important;
+  margin-bottom: 1rem;
+  display: block; /* Asegura que no se desborde */
+}
+
+.news-post .news-no-img {
+  height: 150px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.news-post .leer-mas-btn, .news-post .leer-menos-btn {
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.news-post .leer-mas-btn:hover {
+  background: #0d6efd !important;
+  color: white !important;
+  transform: scale(1.02);
+}
+
+.news-post .leer-menos-btn:hover {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.news-post .full-content {
+  transition: all 0.3s ease;
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.news-post .full-content.show {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; height: 0; }
+  to { opacity: 1; height: auto; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .news-post .news-small-img {
+    height: 120px !important;
+  }
+  
+  .news-post .card-title {
+    font-size: 1.1rem;
+  }
+}

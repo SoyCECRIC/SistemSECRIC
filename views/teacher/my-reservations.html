@@ -11,16 +11,22 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-      <!-- Header con logo y botón de cerrar sesión -->
     <div class="dashboard-header px-4 py-3 d-flex justify-content-between align-items-center">
         <img src="/img/logo_1.png" alt="Logo Secundario" class="img-fluid logo-main">
+        
+        <!-- Contenedor derecho: Foto pequeña + Botón logout -->
+        <div class="d-flex align-items-center gap-2">
+        <div class="manage-profile-img" id="profile-image-container">
+            <i class="fas fa-user default-avatar"></i>
+        </div>
         <button id="logoutBtn" class="btn btn-outline-danger rounded-pill" title="Cerrar Sesión">
             <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
         </button>
+        </div>
     </div>
 
-        <!-- Menú de Iconos basado en Rol -->
-    <section id="menu-icons-section" class="container">
+    <!-- Menú de Iconos basado en Rol -->
+    <section id="menu-icons-section" class="container hidden">
       <h3 class="text-center mb-4"></h3>
       <div id="menu-icons" class="row g-4 justify-content-center">
         <!-- Los ítems se generan dinámicamente con JS -->
