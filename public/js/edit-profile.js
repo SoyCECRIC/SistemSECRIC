@@ -74,48 +74,33 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('profileImage', profileImageInput.files[0]);
         }
 
-        confirmAction = async () => {
+        // === REEMPLAZA TODO EL BLOQUE DE confirmAction con ESTE CÓDIGO ===
+confirmAction = async () => {
     try {
-        const formData = new FormData();
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
         let profileImageBase64 = null;
 
-        // Si hay foto seleccionada → convertir a base64 (en memoria)
         if (profileImageInput.files[0]) {
             const file = profileImageInput.files[0];
-            if (file.size > 8 * 1024 * 1024) { // 8MB límite razonable
-                throw new Error('La imagen es demasiado grande (máx 8MB)');
-            }
-            profileImageBase64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
 
-        const body = {
-            name,
-            email,
-            profileImage: profileImageBase64 // ← base64 o null
-        };
+            // Comprimir imagen antes de convertir a base64
+            profileImageBase64 = await compressImage(file, 800, 0.8); // 800px, 80% calidad
+        }
 
         const res = await fetch('/profile/update', {
             method: 'POST',
             credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, profileImage: profileImageBase64 })
         });
 
         const messageDiv = document.getElementById('profile-message');
         if (res.ok) {
-            const result = await res.json();
+            const data = await res.json();
             messageDiv.classList.remove('d-none', 'alert-danger');
             messageDiv.classList.add('alert-success');
-            messageDiv.textContent = result.message || 'Perfil actualizado';
+            messageDiv.textContent = data.message || 'Perfil actualizado';
             setTimeout(() => location.reload(), 1500);
         } else {
             let errorMsg = 'Error al guardar';
@@ -123,23 +108,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 const err = await res.json();
                 errorMsg = err.error || errorMsg;
             } catch {
-                errorMsg = await res.text();
+                errorMsg = 'Error del servidor (413: imagen muy grande)';
             }
             messageDiv.classList.remove('d-none', 'alert-success');
             messageDiv.classList.add('alert-danger');
             messageDiv.textContent = errorMsg;
         }
     } catch (err) {
-        console.error('Error:', err);
-        const messageDiv = document.getElementById('profile-message');
-        messageDiv.classList.remove('d-none', 'alert-success');
-        messageDiv.classList.add('alert-danger');
-        messageDiv.textContent = err.message || 'Error de conexión';
+        console.error(err);
+        document.getElementById('profile-message').classList.remove('d-none', 'alert-success');
+        document.getElementById('profile-message').classList.add('alert-danger');
+        document.getElementById('profile-message').textContent = err.message || 'Error de conexión';
     } finally {
         bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
     }
 };
+
+// === FUNCIÓN PARA COMPRIMIR IMAGEN (AGREGA ESTO AL FINAL DEL JS) ===
+function compressImage(file, maxWidth = 800, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
+}})
 
     // Guardar cambio de contraseña con confirmación
     const changePasswordForm = document.getElementById('changePasswordForm');

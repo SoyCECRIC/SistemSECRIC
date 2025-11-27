@@ -3,13 +3,12 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const reservationController = require('../controllers/reservationController');
 const userController = require('../controllers/userController');
+const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
-const newsController = require('../controllers/newsController');
 require('dotenv').config();
-
 
 
 // Configuración simple de Nodemailer con Mailtrap
@@ -300,6 +299,8 @@ router.post('/users/create', authController.verifyToken, authController.verifyRo
         res.status(500).json({ error: 'Error del servidor al crear el usuario' });
     }
 });
+
+const newsController = require('../controllers/newsController');
 
 // Configuración de Multer para noticias (en memoria para base64)
 const uploadNews = multer({
