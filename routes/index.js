@@ -3,41 +3,14 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const reservationController = require('../controllers/reservationController');
 const userController = require('../controllers/userController');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
+const newsController = require('../controllers/newsController');
 require('dotenv').config();
 
-// === REEMPLAZA TODA LA CONFIGURACIÓN ANTIGUA DE MULTER ===
-const upload = multer({
-    storage: multer.memoryStorage(),  // ← NUNCA escribe en disco
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        if (extname && mimetype) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Solo se permiten imágenes JPG o PNG'));
-        }
-    },
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB máx
-}).single('profileImage');
 
-// Middleware de errores de Multer (mejorado)
-const handleMulterError = (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'La imagen es demasiado grande (máx 10MB)' });
-        }
-    }
-    if (err) {
-        return res.status(400).json({ error: err.message });
-    }
-    next();
-};
 
 // Configuración simple de Nodemailer con Mailtrap
 const transporter = nodemailer.createTransport({
@@ -173,23 +146,18 @@ router.get('/dashboard', authController.verifyToken, (req, res) => {
 
 // Editar perfil
 router.get('/profile/edit', authController.verifyToken, (req, res) => res.sendFile('views/common/edit-profile.html', { root: __dirname + '/../' }));
-router.post('/profile/update', authController.verifyToken, upload, handleMulterError, async (req, res) => {
+// === RUTA NUEVA SIN MULTER (funciona 100% en Hostinger) ===
+router.post('/profile/update', authController.verifyToken, async (req, res) => {
     try {
-        console.log('Procesando actualización de perfil...');
+        const { name, email, profileImage } = req.body;
+
         const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-        // Actualizar nombre y email
-        user.name = req.body.name || user.name;
-        user.email = req.body.email || user.email;
-
-        // Si hay imagen → usar el buffer en memoria (nunca toca disco)
-        if (req.file) {
-            const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-            user.profileImage = base64Image;
-            console.log('Foto de perfil actualizada (base64 en memoria)');
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (profileImage && profileImage.startsWith('data:image')) {
+            user.profileImage = profileImage; // base64 directo
         }
 
         await user.save();
@@ -201,7 +169,7 @@ router.post('/profile/update', authController.verifyToken, upload, handleMulterE
 
     } catch (err) {
         console.error('Error actualizando perfil:', err);
-        res.status(500).json({ error: 'Error del servidor al actualizar el perfil' });
+        res.status(500).json({ error: 'Error del servidor' });
     }
 });
 router.post('/profile/change-password', authController.verifyToken, authController.changePassword);
@@ -330,19 +298,6 @@ router.post('/users/create', authController.verifyToken, authController.verifyRo
     } catch (err) {
         console.error('Error creando usuario:', err.message);
         res.status(500).json({ error: 'Error del servidor al crear el usuario' });
-    }
-});
-
-const newsController = require('../controllers/newsController');
-
-// Configuración de Multer para noticias (imágenes y videos)
-const newsStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/img/news/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-        cb(null, `news-${uniqueSuffix}${path.extname(file.originalname).toLowerCase()}`);
     }
 });
 

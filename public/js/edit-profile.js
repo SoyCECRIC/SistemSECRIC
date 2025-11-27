@@ -75,59 +75,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         confirmAction = async () => {
-            try {
-                const res = await fetch('/profile/update', {
-                    method: 'POST',
-                    credentials: 'include',
-                    body: formData
-                });
-                const messageDiv = document.getElementById('profile-message');
-                if (res.ok) {
-                    messageDiv.classList.remove('d-none', 'alert-danger');
-                    messageDiv.classList.add('alert-success');
-                    messageDiv.textContent = 'Cambios guardados exitosamente';
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    // Intentar leer como JSON, pero si falla → probablemente es HTML (sesión expirada)
-                    let errorMessage = 'Error al guardar cambios';
-                    try {
-                        const contentType = res.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            const errorData = await res.json();
-                            errorMessage = errorData.error || errorMessage;
-                        } else {
-                            // Es HTML → probablemente sesión expirada o error del servidor
-                            const text = await res.text();
-                            if (text.includes('login') || text.includes('Iniciar sesión') || res.status === 401 || res.status === 403) {
-                                errorMessage = 'Sesión expirada. Serás redirigido al login...';
-                                setTimeout(() => {
-                                    window.location.href = '/';
-                                }, 2000);
-                            } else {
-                                errorMessage = 'Error del servidor. Intenta más tarde.';
-                            }
-                        }
-                    } catch (err) {
-                        errorMessage = 'Error de conexión o respuesta inválida del servidor';
-                    }
+    try {
+        const formData = new FormData();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        let profileImageBase64 = null;
 
-                    messageDiv.classList.remove('d-none', 'alert-success');
-                    messageDiv.classList.add('alert-danger');
-                    messageDiv.textContent = errorMessage;
-                    confirmModal.hide();
-                }
-            } catch (err) {
-                console.error('Error guardando perfil:', err.message);
-                const messageDiv = document.getElementById('profile-message');
-                messageDiv.classList.remove('d-none', 'alert-success');
-                messageDiv.classList.add('alert-danger');
-                messageDiv.textContent = 'Error al guardar cambios: ' + err.message;
-                confirmModal.hide();
-                document.getElementById('changePasswordBtn').focus();
+        // Si hay foto seleccionada → convertir a base64 (en memoria)
+        if (profileImageInput.files[0]) {
+            const file = profileImageInput.files[0];
+            if (file.size > 8 * 1024 * 1024) { // 8MB límite razonable
+                throw new Error('La imagen es demasiado grande (máx 8MB)');
             }
+            profileImageBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        const body = {
+            name,
+            email,
+            profileImage: profileImageBase64 // ← base64 o null
         };
+
+        const res = await fetch('/profile/update', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const messageDiv = document.getElementById('profile-message');
+        if (res.ok) {
+            const result = await res.json();
+            messageDiv.classList.remove('d-none', 'alert-danger');
+            messageDiv.classList.add('alert-success');
+            messageDiv.textContent = result.message || 'Perfil actualizado';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            let errorMsg = 'Error al guardar';
+            try {
+                const err = await res.json();
+                errorMsg = err.error || errorMsg;
+            } catch {
+                errorMsg = await res.text();
+            }
+            messageDiv.classList.remove('d-none', 'alert-success');
+            messageDiv.classList.add('alert-danger');
+            messageDiv.textContent = errorMsg;
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        const messageDiv = document.getElementById('profile-message');
+        messageDiv.classList.remove('d-none', 'alert-success');
+        messageDiv.classList.add('alert-danger');
+        messageDiv.textContent = err.message || 'Error de conexión';
+    } finally {
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+    }
+};
     });
 
     // Guardar cambio de contraseña con confirmación
