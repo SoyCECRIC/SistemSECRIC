@@ -267,7 +267,7 @@ router.get('/my-reservations', authController.verifyToken, authController.verify
 router.get('/users/manage', authController.verifyToken, authController.verifyRole(['superadmin', 'admin']), (req, res) => res.sendFile('views/super-admin/manage-users.html', { root: __dirname + '/../' }));
 router.get('/users', authController.verifyToken, authController.verifyRole(['superadmin', 'admin']), userController.getUsers);
 router.post('/users/edit/:id', authController.verifyToken, authController.verifyRole(['superadmin', 'admin']), userController.editUser);
-router.post('/users/delete/:id', authController.verifyToken, authController.verifyRole(['superadmin', 'admin']), userController.deleteUser);
+router.delete('/users/delete/:id', authController.verifyToken, authController.verifyRole(['superadmin', 'admin']), userController.deleteUser);
 
 // Obtener datos del usuario
 router.get('/user', authController.verifyToken, async (req, res) => {
