@@ -10,46 +10,31 @@ const User = require('../models/User');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Configuración de Multer para subir imágenes
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/img/');
-    },
-    filename: (req, file, cb) => {
-        if (!file || !file.originalname) {
-            return cb(new Error('Archivo inválido o no proporcionado'));
-        }
-        const userId = req.user ? req.user.id : 'unknown';
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-        cb(null, `profile-${userId}-${uniqueSuffix}${path.extname(file.originalname).toLowerCase()}`);
-    }
-});
-
+// === REEMPLAZA TODA LA CONFIGURACIÓN ANTIGUA DE MULTER ===
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),  // ← NUNCA escribe en disco
     fileFilter: (req, file, cb) => {
-        if (!file || !file.originalname) {
-            return cb(new Error('No se proporcionó ningún archivo'));
-        }
-        const filetypes = /jpeg|jpg|png/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = filetypes.test(file.mimetype);
+        const allowedTypes = /jpeg|jpg|png/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
         if (extname && mimetype) {
             return cb(null, true);
         } else {
             cb(new Error('Solo se permiten imágenes JPG o PNG'));
         }
     },
-    limits: { fileSize: 10 * 1024 * 1024 }
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB máx
 }).single('profileImage');
 
-// Middleware para manejar errores de Multer
+// Middleware de errores de Multer (mejorado)
 const handleMulterError = (err, req, res, next) => {
-    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'El archivo es demasiado grande. El tamaño máximo permitido es 10 MB.' });
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'La imagen es demasiado grande (máx 10MB)' });
+        }
     }
     if (err) {
-        return res.status(400).json({ error: err.message || 'Error al procesar el archivo' });
+        return res.status(400).json({ error: err.message });
     }
     next();
 };
@@ -190,9 +175,8 @@ router.get('/dashboard', authController.verifyToken, (req, res) => {
 router.get('/profile/edit', authController.verifyToken, (req, res) => res.sendFile('views/common/edit-profile.html', { root: __dirname + '/../' }));
 router.post('/profile/update', authController.verifyToken, upload, handleMulterError, async (req, res) => {
     try {
-        console.log('Procesando /profile/update');
+        console.log('Procesando actualización de perfil...');
         const user = await User.findById(req.user.id);
-        
         if (!user) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
@@ -201,39 +185,23 @@ router.post('/profile/update', authController.verifyToken, upload, handleMulterE
         user.name = req.body.name || user.name;
         user.email = req.body.email || user.email;
 
-        // Si hay nueva imagen, convertir a base64
+        // Si hay imagen → usar el buffer en memoria (nunca toca disco)
         if (req.file) {
-            const fs = require('fs').promises;
-            const imagePath = req.file.path;
-            
-            try {
-                // Leer la imagen y convertir a base64
-                const imageBuffer = await fs.readFile(imagePath);
-                const base64Image = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-                
-                // Guardar en MongoDB
-                user.profileImage = base64Image;
-                
-                // Eliminar archivo temporal del servidor
-                await fs.unlink(imagePath);
-                console.log('Imagen convertida a base64 y archivo temporal eliminado');
-                
-            } catch (err) {
-                console.error('Error procesando imagen:', err);
-                return res.status(500).json({ error: 'Error procesando la imagen' });
-            }
+            const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+            user.profileImage = base64Image;
+            console.log('Foto de perfil actualizada (base64 en memoria)');
         }
 
         await user.save();
-        
+
         res.json({
             message: 'Perfil actualizado exitosamente',
-            profileImage: user.profileImage // Enviamos el base64 completo
+            profileImage: user.profileImage
         });
 
     } catch (err) {
-        console.error('Error actualizando perfil:', err.message);
-        res.status(500).json({ error: err.message || 'Error del servidor' });
+        console.error('Error actualizando perfil:', err);
+        res.status(500).json({ error: 'Error del servidor al actualizar el perfil' });
     }
 });
 router.post('/profile/change-password', authController.verifyToken, authController.changePassword);
