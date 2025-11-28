@@ -1,0 +1,71 @@
+/* ==== TABLA AGENDA PROFESIONAL ==== */
+.table-agenda-pro {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 10px;
+    font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* Encabezado */
+.table-agenda-pro thead th {
+    background: #1f2d3d; /* azul oscuro corporativo */
+    color: #ffffff;
+    padding: 14px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Filas estilo tarjeta */
+.table-agenda-pro tbody tr {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    transition: 0.2s ease;
+}
+
+.table-agenda-pro tbody tr:hover {
+    transform: scale(1.003);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+
+/* Celdas */
+.table-agenda-pro tbody td {
+    padding: 14px 12px;
+    font-size: 14px;
+    color: #2c3e50;
+    border: none !important;
+}
+
+/* Columna izquierda con barra profesional */
+.table-agenda-pro tbody td:first-child {
+    border-left: 4px solid #1f2d3d;
+    font-weight: 600;
+}
+
+/* Badge profesional */
+.table-agenda-pro .badge {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+/* Botones */
+.table-agenda-pro .btn-action {
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+
+.table-agenda-pro .btn-action i {
+    font-size: 14px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .table-agenda-pro tbody td {
+        padding: 10px;
+        font-size: 13px;
+    }
+}
