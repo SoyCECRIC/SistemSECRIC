@@ -68,6 +68,21 @@ document.addEventListener('DOMContentLoaded', () => {
             message.textContent = 'Usuario creado exitosamente';
             setTimeout(() => {
                 bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                
+                // Limpiar formulario manualmente (fuerza reset total)
+                const form = document.getElementById('createUserForm');
+                form.reset();
+                
+                // Limpiar campos específicos (por si reset no alcanza)
+                document.getElementById('createName').value = '';
+                document.getElementById('createEmail').value = '';
+                document.getElementById('createPassword').value = '';
+                document.getElementById('createRole').value = 'teacher'; // Valor por defecto
+                
+                // Ocultar mensaje de éxito
+                message.classList.add('d-none');
+                message.classList.remove('alert-success');
+                
                 loadTableData('/users', 'users-table');
             }, 2000);
         } catch (err) {

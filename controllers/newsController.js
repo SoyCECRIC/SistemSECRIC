@@ -29,51 +29,48 @@ function calculateExpiryDate(duration, durationType) {
 }
 
 // createNews
-exports.createNews = async (req, res) => {
+// createNews (retorna news en lugar de res.json)
+exports.createNews = async (req) => {  // Sin 'res' como parámetro
     try {
         const { title, summary, content, duration, durationType, mediaUrl, mediaType } = req.body;
 
+        // Validaciones básicas
+        if (!title || !summary || !content) {
+            throw new Error('Título, resumen y contenido son requeridos');
+        }
+
         // Calcular fecha de expiración
-        const expiresAt = new Date();
-        const value = parseInt(duration) || 7;
-        if (durationType === 'minutes') expiresAt.setMinutes(expiresAt.getMinutes() + value);
-        else if (durationType === 'hours') expiresAt.setHours(expiresAt.getHours() + value);
-        else if (durationType === 'days') expiresAt.setDate(expiresAt.getDate() + value);
-        else if (durationType === 'weeks') expiresAt.setDate(expiresAt.getDate() + value * 7);
-        else if (durationType === 'months') expiresAt.setMonth(expiresAt.getMonth() + value);
-        else if (durationType === 'years') expiresAt.setFullYear(expiresAt.getFullYear() + value);
+        const expiresAt = calculateExpiryDate(duration, durationType);
 
         const news = new News({
-            title,
-            summary,
-            content,
+            title: title.trim(),
+            summary: summary.trim(),
+            content: content.trim(),
             mediaUrl: mediaUrl || null,
             mediaType: mediaType || null,
             expiresAt,
-            createdBy: req.user.id
+            author: req.user.id
         });
 
         await news.save();
-        res.json({ message: 'Noticia creada' });
+        console.log('Noticia creada con ID:', news._id);
+        return news;  // ← RETORNA el objeto news para la ruta
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error del servidor' });
+        console.error('Error creando noticia:', err);
+        throw err;  // Lanza error para que la ruta lo capture
     }
 };
 
 // editNews
+// editNews (corregida: cálculo completo para todos los tipos de duración)
 exports.editNews = async (req, res) => {
     try {
         const newsId = req.params.id;
         const updates = { ...req.body };
 
-        // Recalcular expiresAt si cambian duración
+        // Recalcular expiresAt si cambian duración (usa función completa para todos los tipos)
         if (updates.duration && updates.durationType) {
-            const value = parseInt(updates.duration);
-            const expiresAt = new Date();
-            // misma lógica que arriba...
-            if (updates.durationType === 'days') expiresAt.setDate(expiresAt.getDate() + value);
-            // ... resto igual
+            const expiresAt = calculateExpiryDate(updates.duration, updates.durationType);
             updates.expiresAt = expiresAt;
             delete updates.duration;
             delete updates.durationType;
@@ -82,7 +79,7 @@ exports.editNews = async (req, res) => {
         const news = await News.findByIdAndUpdate(newsId, updates, { new: true });
         if (!news) return res.status(404).json({ error: 'Noticia no encontrada' });
 
-        res.json({ message: 'Noticia actualizada' });
+        res.json({ message: 'Noticia actualizada exitosamente' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Error del servidor' });
@@ -105,16 +102,12 @@ exports.getActiveNews = async (req, res) => {
     }
 };
 
-// Obtener todas las noticias (para admin)
 exports.getAllNews = async (req, res) => {
     try {
-        const news = await News.find()
-            .populate('author', 'name')
-            .sort({ createdAt: -1 });
-
+        const news = await News.find().sort({ createdAt: -1 });
         res.json(news);
     } catch (err) {
-        console.error('Error obteniendo noticias:', err);
+        console.error('Error obteniendo todas las noticias:', err);
         res.status(500).json({ error: 'Error del servidor' });
     }
 };

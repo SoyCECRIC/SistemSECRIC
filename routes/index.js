@@ -16,14 +16,17 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS // Esta debe ser la contraseña de aplicación
     }
+    
 });
 
 // Verificar configuración
 transporter.verify((error, success) => {
     if (error) {
-        console.error('Error en la configuración de Nodemailer:', error.message);
+        console.error('Error en Nodemailer:', error.code, error.message);
+        console.log('Email user config:', !!process.env.EMAIL_USER ? 'OK' : 'MISSING');
+        console.log('Email pass length:', process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 'MISSING');
     } else {
-        console.log('Configuración de Gmail verificada correctamente');
+        console.log('✅ Nodemailer listo para enviar emails');
     }
 });
 
@@ -266,7 +269,7 @@ router.get('/teachers', authController.verifyToken, authController.verifyRole(['
     }
 });
 
-// Ruta para crear un nuevo usuario
+// Ruta para crear un nuevo usuario (con email de confirmación)
 router.post('/users/create', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), async (req, res) => {
     console.log('Recibiendo solicitud POST /users/create:', req.body);
     const { name, email, password, role } = req.body;
@@ -302,13 +305,77 @@ router.post('/users/create', authController.verifyToken, authController.verifyRo
         const newUser = new User({
             name,
             email,
-            password,
+            password,  // Almacena como texto plano (como antes)
             role,
             profileImage: null
         });
 
         await newUser.save();
         console.log('Usuario creado exitosamente:', { name, email, role });
+
+        // === NUEVO: ENVIAR EMAIL DE CONFIRMACIÓN ===
+        try {
+            const mailOptions = {
+                from: {
+                    name: 'Sistema Cristóbal Colón',
+                    address: process.env.EMAIL_USER
+                },
+                to: email,
+                subject: '🎉 Bienvenido al Sistema CECRIC - Tu cuenta ha sido creada',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+                        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">
+                                🎉 ¡Bienvenido, ${name}!
+                            </h2>
+                            
+                            <p style="font-size: 16px; color: #34495e; line-height: 1.6;">
+                                Tu cuenta en el <strong>Sistema CECRIC</strong> ha sido creada exitosamente por un administrador.
+                            </p>
+                            
+                            <div style="background-color: #ecf0f1; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;">
+                                <p style="font-size: 14px; color: #7f8c8d; margin: 0 0 10px 0;">Tus credenciales temporales son:</p>
+                                <p style="font-size: 18px; font-weight: bold; color: #e74c3c; margin: 0; font-family: monospace;">
+                                    📧 ${email}<br>
+                                    🔑 ${password}
+                                </p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="soycecric.cloud" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                                    🚀 Iniciar Sesión y Cambiar Contraseña
+                                </a>
+                            </div>
+                            
+                            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
+                                <p style="font-size: 14px; color: #856404; margin: 0;">
+                                    ⚠️ <strong>Por seguridad:</strong> Cambia tu contraseña inmediatamente al iniciar sesión por primera vez.
+                                </p>
+                            </div>
+                            
+                            <p style="font-size: 14px; color: #7f8c8d; text-align: center; margin-top: 30px;">
+                                Si tienes dudas, contacta al administrador del sistema.
+                            </p>
+                            
+                            <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 20px 0;">
+                            
+                            <p style="font-size: 12px; color: #95a5a6; text-align: center; margin: 0;">
+                                Sistema CECRIC - Cristóbal Colón<br>
+                                Este es un correo automático, no respondas.
+                            </p>
+                        </div>
+                    </div>
+                `
+            };
+
+            await transporter.sendMail(mailOptions);
+            console.log(`✅ Email de bienvenida enviado a: ${email}`);
+        } catch (emailErr) {
+            console.error('❌ Error enviando email de bienvenida:', emailErr.message);
+            // No falla la creación del usuario – solo loguea el error
+        }
+
+        // === FIN DEL EMAIL ===
         res.status(201).json({ message: 'Usuario creado exitosamente' });
     } catch (err) {
         console.error('Error creando usuario:', err.message);
@@ -320,12 +387,97 @@ router.post('/users/create', authController.verifyToken, authController.verifyRo
 
 // Rutas de Noticias
 router.get('/news/manage', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), (req, res) => res.sendFile('views/admin/manage-news.html', { root: __dirname + '/../' }));
-router.post('/news/create', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.createNews);
+router.post('/news/create', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        // Llama al controlador (retorna news)
+        const news = await newsController.createNews(req);
+
+        // Respuesta inmediata (no espera emails)
+        res.json({ message: 'Noticia creada exitosamente' });
+
+        // === ENVIAR EMAILS EN BACKGROUND (paralelo, no bloquea) ===
+        setImmediate(async () => {  // Ejecuta después de la respuesta (no bloquea)
+            try {
+                // Obtener usuarios (excepto superadmin)
+                const users = await User.find({ role: { $ne: 'superadmin' } }, 'name email');
+                console.log(`📧 Enviando notificación de nueva noticia a ${users.length} usuarios (en paralelo)...`);
+
+                if (users.length > 0) {
+                    // Emails en paralelo con Promise.all (rápido!)
+                    const emailPromises = users.map(async (user) => {
+                        const mailOptions = {
+                            from: {
+                                name: 'Sistema Cristóbal Colón',
+                                address: process.env.EMAIL_USER
+                            },
+                            to: user.email,
+                            subject: '📰 Nueva Noticia en el Sistema CECRIC',
+                            html: `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+                                    <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                        <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">
+                                            📰 ¡Nueva Noticia Disponible!
+                                        </h2>
+                                        
+                                        <p style="font-size: 16px; color: #34495e; line-height: 1.6;">
+                                            Hola <strong>${user.name}</strong>,
+                                        </p>
+                                        
+                                        <p style="font-size: 16px; color: #34495e; line-height: 1.6; margin-bottom: 20px;">
+                                            Hay una nueva noticia en el <strong>Sistema CECRIC</strong>. Te dejamos un resumen rápido:
+                                        </p>
+                                        
+                                        <div style="background-color: #ecf0f1; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                                            <h3 style="color: #0d6efd; margin-bottom: 10px;">${news.title}</h3>
+                                            <p style="color: #555; line-height: 1.5;">${news.summary}</p>
+                                        </div>
+                                        
+                                        <div style="text-align: center; margin: 30px 0;">
+                                            <a href="soycecric.cloud" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                                                📖 Leer Noticia Completa
+                                            </a>
+                                        </div>
+                                        
+                                        <p style="font-size: 14px; color: #7f8c8d; text-align: center; margin-top: 30px;">
+                                            Inicia sesión en el dashboard para ver todas las noticias actualizadas.
+                                        </p>
+                                        
+                                        <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 20px 0;">
+                                        
+                                        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin: 0;">
+                                            Sistema CECRIC - Cristóbal Colón<br>
+                                            Este es un correo automático, no respondas.
+                                        </p>
+                                    </div>
+                                </div>
+                            `
+                        };
+
+                        await transporter.sendMail(mailOptions);
+                        console.log(`✅ Aviso de noticia enviado a: ${user.email}`);
+                    });
+
+                    // Espera todos en paralelo (rápido!)
+                    await Promise.all(emailPromises);
+                    console.log('📧 Todos los emails de notificación enviados');
+                } else {
+                    console.log('No hay usuarios para notificar');
+                }
+            } catch (emailErr) {
+                console.error('❌ Error enviando avisos de noticia:', emailErr.message);
+                // No afecta la creación
+            }
+        });
+    } catch (err) {
+        console.error('Error en ruta /news/create:', err);
+        res.status(500).json({ error: err.message || 'Error del servidor' });
+    }
+});
 router.get('/news/active', authController.verifyToken, newsController.getActiveNews);
 router.get('/news', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.getAllNews);
 router.get('/news/edit/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.getNewsById);
 router.post('/news/edit/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.editNews);
-router.delete('/news/delete/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.deleteNews);
+router.post('/news/delete/:id', authController.verifyToken, authController.verifyRole(['admin', 'superadmin']), newsController.deleteNews);
 
 // Ruta para limpiar noticias expiradas (puede ser llamada manualmente o por cron)
 router.post('/news/clean-expired', authController.verifyToken, authController.verifyRole(['superadmin']), newsController.cleanExpiredNews);
